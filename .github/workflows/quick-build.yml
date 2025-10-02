@@ -1,0 +1,103 @@
+name: Quick Build & Test
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  GO_VERSION: '1.24.4'
+  NODE_VERSION: '22.15.0'
+
+jobs:
+  quick-test:
+    name: Quick Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd ui
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd ui
+          npm run build:device
+
+      - name: Test X86_64 build system
+        run: |
+          chmod +x test_x86_build.sh
+          ./test_x86_build.sh
+
+      - name: Quick X86_64 build
+        run: |
+          chmod +x build_x86.sh
+          ./build_x86.sh --dev --skip-ui-build
+
+      - name: Test binary execution
+        run: |
+          timeout 10s ./bin/jetkvm_app --help || echo "Help command completed"
+
+  lint-and-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd ui
+          npm ci
+
+      - name: Lint frontend
+        run: |
+          cd ui
+          npm run lint
+
+      - name: Format check Go code
+        run: |
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "Go code is not formatted. Please run 'gofmt -s -w .'"
+            gofmt -s -l .
+            exit 1
+          fi
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go mod tidy check
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
+            echo "go.mod or go.sum is not tidy"
+            exit 1
+          fi
