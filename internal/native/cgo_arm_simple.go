@@ -79,3 +79,126 @@ func StopVideoCapture() error {
 	log.Println("Mock: Stopping video capture")
 	return nil
 }
+
+// UI Mock functions for ARM no-CGO builds
+func uiInit(rotation uint16) {
+	log.Printf("Mock: UI init for ARM (no CGO) with rotation: %d", rotation)
+}
+
+func uiTick() {
+	// Mock UI tick - no actual UI processing needed
+}
+
+func uiSetVar(name string, value string) {
+	log.Printf("Mock: UI set var %s = %s", name, value)
+}
+
+func uiGetVar(name string) string {
+	log.Printf("Mock: UI get var %s", name)
+	return "mock_value"
+}
+
+func uiSwitchToScreen(screen string) {
+	log.Printf("Mock: UI switch to screen: %s", screen)
+}
+
+func uiGetCurrentScreen() string {
+	return "main"
+}
+
+func uiObjAddState(objName string, state string) (bool, error) {
+	log.Printf("Mock: UI add state %s to %s", state, objName)
+	return true, nil
+}
+
+func uiObjClearState(objName string, state string) (bool, error) {
+	log.Printf("Mock: UI clear state %s from %s", state, objName)
+	return true, nil
+}
+
+func uiGetLVGLVersion() string {
+	return "8.3.0-arm-mock"
+}
+
+func uiObjAddFlag(objName string, flag string) (bool, error) {
+	log.Printf("Mock: UI add flag %s to %s", flag, objName)
+	return true, nil
+}
+
+func uiObjClearFlag(objName string, flag string) (bool, error) {
+	log.Printf("Mock: UI clear flag %s from %s", flag, objName)
+	return true, nil
+}
+
+func uiObjHide(objName string) (bool, error) {
+	log.Printf("Mock: UI hide object: %s", objName)
+	return uiObjAddFlag(objName, "LV_OBJ_FLAG_HIDDEN")
+}
+
+func uiObjShow(objName string) (bool, error) {
+	log.Printf("Mock: UI show object: %s", objName)
+	return uiObjClearFlag(objName, "LV_OBJ_FLAG_HIDDEN")
+}
+
+func uiObjSetOpacity(objName string, opacity int) (bool, error) {
+	log.Printf("Mock: UI set opacity %d for %s", opacity, objName)
+	return true, nil
+}
+
+func uiObjFadeIn(objName string, duration uint32) (bool, error) {
+	log.Printf("Mock: UI fade in %s over %d ms", objName, duration)
+	return true, nil
+}
+
+func uiObjFadeOut(objName string, duration uint32) (bool, error) {
+	log.Printf("Mock: UI fade out %s over %d ms", objName, duration)
+	return true, nil
+}
+
+func uiLabelSetText(objName string, text string) (bool, error) {
+	log.Printf("Mock: UI set text '%s' for %s", text, objName)
+	return true, nil
+}
+
+func uiImgSetSrc(objName string, src string) (bool, error) {
+	log.Printf("Mock: UI set image source '%s' for %s", src, objName)
+	return true, nil
+}
+
+func uiDispSetRotation(rotation uint16) (bool, error) {
+	log.Printf("Mock: UI set display rotation: %d", rotation)
+	return true, nil
+}
+
+func uiEventCodeToName(code int) string {
+	return fmt.Sprintf("MOCK_ARM_EVENT_%d", code)
+}
+
+// Video mock functions for ARM no-CGO builds
+func videoInit() error {
+	log.Println("Mock: Video init for ARM (no CGO)")
+	return nil
+}
+
+func videoClose() error {
+	log.Println("Mock: Video close for ARM")
+	return nil
+}
+
+func videoSetStreamQualityFactor(factor float64) error {
+	log.Printf("Mock: Setting video quality factor to %f", factor)
+	return nil
+}
+
+func videoGetStreamQualityFactor() (float64, error) {
+	return 0.8, nil
+}
+
+func videoGetState() VideoState {
+	return VideoState{
+		Ready:          true,
+		Width:          1920,
+		Height:         1080,
+		FramePerSecond: 30.0,
+	}
+}
