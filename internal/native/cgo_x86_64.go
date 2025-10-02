@@ -5,8 +5,6 @@ package native
 import (
 	"fmt"
 	"sync"
-
-	"github.com/rs/zerolog"
 )
 
 var cgoLock sync.Mutex
