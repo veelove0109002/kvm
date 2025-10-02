@@ -28,7 +28,80 @@ TMP_DIR=$(mktemp -d)
 pushd "${CGO_PATH}" > /dev/null
 
 msg_info "▶ Generating UI index"
-./ui_index.gen.sh
+if [ "${TARGET_ARCH}" = "x86_64" ]; then
+    # Use mock UI index for X86_64
+    cat << 'EOF' > ui_index.c
+// Mock UI index for X86_64 - no actual UI content
+#include <stdio.h>
+
+// Mock UI objects array
+typedef struct {
+    const char *name;
+    void **obj;
+} ui_obj_map;
+
+ui_obj_map ui_objects[] = {};
+const int ui_objects_size = 0;
+
+// Mock UI styles array
+typedef struct {
+    const char *name;
+    void *(*getter)();
+} ui_style_map;
+
+ui_style_map ui_styles[] = {};
+const int ui_styles_size = 0;
+
+// Mock UI images array
+typedef struct {
+    const char *name;
+    const void *img;
+} ui_img_map;
+
+ui_img_map ui_images[] = {};
+const int ui_images_size = 0;
+
+// Mock UI vars array
+typedef struct {
+    const char *name;
+    const char *(*getter)();
+    void (*setter)(const char *value);
+} ui_var_map;
+
+ui_var_map ui_vars[] = {};
+const int ui_vars_size = 0;
+
+// Mock UI functions that might be referenced
+void ui_init() {
+    printf("Mock UI init\n");
+}
+
+void ui_tick() {
+    printf("Mock UI tick\n");
+}
+
+const char* ui_get_current_screen() {
+    return "main";
+}
+
+void* ui_get_obj(const char* name) {
+    printf("Mock UI get object: %s\n", name);
+    return NULL;
+}
+
+void* ui_get_style(const char* name) {
+    printf("Mock UI get style: %s\n", name);
+    return NULL;
+}
+
+void ui_set_rpc_handler(void* handler) {
+    printf("Mock UI set RPC handler\n");
+}
+EOF
+    echo "Mock ui_index.c has been generated successfully for X86_64."
+else
+    ./ui_index.gen.sh
+fi
 
 msg_info "▶ Building native library"
 if [ "${TARGET_ARCH}" = "x86_64" ]; then
