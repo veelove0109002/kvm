@@ -94,6 +94,18 @@ jobs:
         if: matrix.arch == 'arm'
         run: |
           sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          # Create a minimal toolchain file for ARM cross-compilation
+          sudo mkdir -p /opt/jetkvm-native-buildkit
+          cat > /tmp/rv1106-jetkvm-v2.cmake << 'EOF'
+          set(CMAKE_SYSTEM_NAME Linux)
+          set(CMAKE_SYSTEM_PROCESSOR arm)
+          set(CMAKE_C_COMPILER arm-linux-gnueabihf-gcc)
+          set(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
+          set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+          set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+          set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+          EOF
+          sudo mv /tmp/rv1106-jetkvm-v2.cmake /opt/jetkvm-native-buildkit/
 
       - name: Build binary
         run: |
@@ -101,8 +113,9 @@ jobs:
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
             make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
           else
-            # For ARM, we might need to skip native build if toolchain is not available
-            make build_release TARGET_ARCH=arm SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1 || make build TARGET_ARCH=arm SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+            # For ARM, use simplified build without native dependencies
+            echo "Building ARM binary with simplified approach..."
+            ./scripts/build_arm_simple.sh
           fi
 
       - name: Rename binary

@@ -36,6 +36,13 @@ else ifeq ($(TARGET_ARCH),arm)
 			LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
 			CGO_ENABLED=1 
 		# GO_RELEASE_BUILD_ARGS := $(GO_RELEASE_BUILD_ARGS) -x -work
+	else
+		# Fallback for CI/CD environments without full buildkit
+		ifeq ($(CGO_ENABLED),0)
+			GO_ARGS := $(GO_ARGS) CGO_ENABLED=0
+		else
+			GO_ARGS := $(GO_ARGS) CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc
+		endif
 	endif
 else
 	$(error Unsupported architecture: $(TARGET_ARCH). Use 'arm' or 'x86_64')
