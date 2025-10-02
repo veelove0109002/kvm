@@ -172,3 +172,67 @@ func uiEventCodeToName(code int) string {
 func crash() {
 	panic("Mock crash for X86_64")
 }
+
+// Additional methods needed by display.go
+func (n *Native) SwitchToScreenIfDifferent(screen string) {
+	if uiGetCurrentScreen() != screen {
+		uiSwitchToScreen(screen)
+	}
+}
+
+func (n *Native) UpdateLabelIfChanged(objName string, text string) {
+	// In a real implementation, we would check if the text has changed
+	// For mock, we just set it directly
+	uiLabelSetText(objName, text)
+}
+
+func (n *Native) UpdateLabelAndChangeVisibility(objName string, text string) {
+	if text != "" {
+		uiLabelSetText(objName, text)
+		uiObjShow(objName)
+	} else {
+		uiObjHide(objName)
+	}
+}
+
+func (n *Native) UIObjHide(objName string) (bool, error) {
+	return uiObjHide(objName)
+}
+
+func (n *Native) UIObjShow(objName string) (bool, error) {
+	return uiObjShow(objName)
+}
+
+func (n *Native) UIObjAddState(objName string, state string) (bool, error) {
+	return uiObjAddState(objName, state)
+}
+
+func (n *Native) UIObjClearState(objName string, state string) (bool, error) {
+	return uiObjClearState(objName, state)
+}
+
+func (n *Native) UISetVar(name string, value string) {
+	uiSetVar(name, value)
+}
+
+func (n *Native) SwitchToScreenIf(screen string, fromScreens []string) {
+	currentScreen := uiGetCurrentScreen()
+	for _, fromScreen := range fromScreens {
+		if currentScreen == fromScreen {
+			uiSwitchToScreen(screen)
+			break
+		}
+	}
+}
+
+func (n *Native) UIObjSetImageSrc(objName string, src string) (bool, error) {
+	return uiImgSetSrc(objName, src)
+}
+
+func (n *Native) UIObjFadeOut(objName string, duration uint32) (bool, error) {
+	return uiObjFadeOut(objName, duration)
+}
+
+func (n *Native) UIObjFadeIn(objName string, duration uint32) (bool, error) {
+	return uiObjFadeIn(objName, duration)
+}
