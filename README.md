@@ -8,6 +8,9 @@
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/jetkvm.svg?style=social&label=Follow%20%40JetKVM)](https://twitter.com/jetkvm)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/jetkvm/kvm)](https://goreportcard.com/report/github.com/jetkvm/kvm)
+[![Build](https://github.com/jetkvm/kvm/actions/workflows/build.yml/badge.svg)](https://github.com/jetkvm/kvm/actions/workflows/build.yml)
+[![Quick Build](https://github.com/jetkvm/kvm/actions/workflows/quick-build.yml/badge.svg)](https://github.com/jetkvm/kvm/actions/workflows/quick-build.yml)
+[![Release](https://github.com/jetkvm/kvm/actions/workflows/release.yml/badge.svg)](https://github.com/jetkvm/kvm/actions/workflows/release.yml)
 
 </div>
 
@@ -18,6 +21,7 @@ JetKVM is a high-performance, open-source KVM over IP (Keyboard, Video, Mouse) s
 - **Ultra-low Latency** - 1080p@60FPS video with 30-60ms latency using H.264 encoding. Smooth mouse and keyboard interaction for responsive remote control.
 - **Free & Optional Remote Access** - Remote management via JetKVM Cloud using WebRTC.
 - **Open-source software** - Written in Golang on Linux. Easily customizable through SSH access to the JetKVM device.
+- **Multi-Architecture Support** - Now supports both ARM (original hardware) and X86_64 (software-based) architectures.
 
 ## Contributing
 
@@ -39,7 +43,25 @@ The project contains two main parts, the backend software that runs on the KVM d
 
 For comprehensive development information, including setup, testing, debugging, and contribution guidelines, see **[DEVELOPMENT.md](DEVELOPMENT.md)**.
 
-For quick device development, use the `./dev_deploy.sh` script. It will build the frontend and backend and deploy them to the local KVM device. Run `./dev_deploy.sh --help` for more information.
+## Architecture Support
+
+JetKVM now supports multiple architectures:
+
+### ARM (Original Hardware)
+For ARM-based JetKVM devices, use the `./dev_deploy.sh` script. It will build the frontend and backend and deploy them to the local KVM device. Run `./dev_deploy.sh --help` for more information.
+
+### X86_64 (Software-based)
+For X86_64 development and testing:
+
+```bash
+# Quick build for X86_64
+./build_x86.sh --dev
+
+# Test the build system
+./test_x86_build.sh
+```
+
+See **[README_X86.md](README_X86.md)** for detailed X86_64 support information.
 
 ## Backend
 
