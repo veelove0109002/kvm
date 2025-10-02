@@ -2,9 +2,7 @@
 
 package kvm
 
-import (
-	"os"
-)
+
 
 // Mock NBD implementation for X86_64
 func (d *NBDDevice) runClientConn() {
