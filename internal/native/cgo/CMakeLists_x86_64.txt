@@ -1,100 +1,52 @@
 cmake_minimum_required(VERSION 3.14)
-include(FetchContent)
-include(ExternalProject)
 
 project(jknative LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# X86_64 specific configuration
-if(TARGET_ARCH STREQUAL "x86_64")
-    message(STATUS "Building for X86_64 architecture")
-    
-    # Skip Rockchip-specific libraries for X86_64
-    set(RK_SDK_BASE "")
-    set(RK_MEDIA_OUTPUT "")
-    set(RK_MEDIA_INCLUDE_PATH "")
-    set(RK_APP_MEDIA_LIBS_PATH "")
-    
-    # Use system libraries instead
-    find_package(PkgConfig REQUIRED)
-    
-    # Try to find system libraries (optional)
-    pkg_check_modules(DRM libdrm)
-    
-else()
-    # ARM/Rockchip configuration
-    set(RK_SDK_BASE "/opt/jetkvm-native-buildkit")
-    set(RK_MEDIA_OUTPUT "${RK_SDK_BASE}/media/out")
-    set(RK_MEDIA_INCLUDE_PATH "${RK_MEDIA_OUTPUT}/include")
-    set(RK_APP_MEDIA_LIBS_PATH "${RK_MEDIA_OUTPUT}/lib")
-endif()
+message(STATUS "Building for X86_64 architecture")
 
-set(LV_USE_KCONFIG ON CACHE BOOL "" FORCE)
-set(LV_BUILD_DEFCONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lvgl_defconfig CACHE PATH "" FORCE)
+# X86_64 simplified configuration - no LVGL, no Rockchip dependencies
+find_package(PkgConfig REQUIRED)
 
-# Fetch LVGL from GitHub
-FetchContent_Declare(
-    lvgl
-    GIT_REPOSITORY https://github.com/lvgl/lvgl.git
-    GIT_TAG v9.3.0
-    GIT_SHALLOW 1
-    UPDATE_DISCONNECTED 1
-    PATCH_COMMAND patch -p1 -f < ${CMAKE_CURRENT_SOURCE_DIR}/lvgl-minify.patch && cat ${CMAKE_CURRENT_SOURCE_DIR}/lvgl-minify.del | xargs rm -v
-    )
-FetchContent_MakeAvailable(lvgl)
+# Try to find system libraries (optional)
+pkg_check_modules(DRM libdrm)
 
-# Get source files, excluding CMake generated files
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS "*.c" "ui/*.c")
-list(FILTER sources EXCLUDE REGEX "CMakeFiles.*CompilerId.*\\.c$")
+# Get source files for X86_64 - use mock implementation
+set(sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/ctrl_x86_64.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui_index.c
+)
 
+# Create a minimal library with mock implementations
 add_library(jknative STATIC ${sources} ${CMAKE_CURRENT_SOURCE_DIR}/ctrl.h)
 
 # Include directories
-if(TARGET_ARCH STREQUAL "x86_64")
-    target_include_directories(jknative PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/ui
-        /usr/include/libdrm  # System libdrm headers
-    )
-    
-    if(DRM_FOUND)
-        target_include_directories(jknative PRIVATE ${DRM_INCLUDE_DIRS})
-    endif()
-else()
-    target_include_directories(jknative PRIVATE
-        ${RK_MEDIA_INCLUDE_PATH}
-        ${RK_MEDIA_INCLUDE_PATH}/libdrm
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/ui
-        ${CMAKE_CURRENT_BINARY_DIR}/deps/libgpiod/include
-    )
-    
-    # Set library search path for ARM
-    target_link_directories(jknative PRIVATE ${RK_APP_MEDIA_LIBS_PATH})
+target_include_directories(jknative PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    /usr/include/libdrm  # System libdrm headers
+)
+
+if(DRM_FOUND)
+    target_include_directories(jknative PRIVATE ${DRM_INCLUDE_DIRS})
 endif()
 
-# Link libraries based on architecture
-if(TARGET_ARCH STREQUAL "x86_64")
-    target_link_libraries(jknative PRIVATE
-        lvgl::lvgl 
-        pthread
-        m
-        # Use system libraries or mock implementations
-    )
-    
-    if(DRM_FOUND)
-        target_link_libraries(jknative PRIVATE ${DRM_LIBRARIES})
-    endif()
-else()
-    target_link_libraries(jknative PRIVATE
-        lvgl::lvgl 
-        pthread
-        rockit
-        rockchip_mpp
-        rga
-        m
-    )
+# Link libraries - minimal set for X86_64
+target_link_libraries(jknative PRIVATE
+    pthread
+    m
+    dl  # For dynamic loading
+)
+
+if(DRM_FOUND)
+    target_link_libraries(jknative PRIVATE ${DRM_LIBRARIES})
 endif()
+
+# Add compiler definitions for X86_64 build
+target_compile_definitions(jknative PRIVATE
+    TARGET_ARCH_X86_64=1
+    NO_LVGL=1
+    NO_ROCKCHIP=1
+)
 
 install(TARGETS jknative DESTINATION lib)

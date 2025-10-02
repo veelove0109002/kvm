@@ -43,7 +43,8 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake pkg-config libdrm-dev
+          sudo apt-get install -y build-essential cmake pkg-config libdrm-dev python3-pip
+          pip3 install kconfiglib
 
       - name: Test X86_64 build system
         run: |
