@@ -117,11 +117,11 @@ func (n *Native) UpdateLabelIfChanged(objName string, newText string) {
 }
 
 // UpdateLabelAndChangeVisibility updates the label and changes the visibility of the object
-func (n *Native) UpdateLabelAndChangeVisibility(objName string, newText string) {
+func (n *Native) UpdateLabelAndChangeVisibility(objName string, newText string, visible bool) {
 	n.UpdateLabelIfChanged(objName, newText)
 
 	containerName := objName + "_container"
-	if newText == "" {
+	if newText == "" || !visible {
 		_, _ = n.UIObjHide(objName)
 		_, _ = n.UIObjHide(containerName)
 	} else {

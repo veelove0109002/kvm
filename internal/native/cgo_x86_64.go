@@ -186,10 +186,14 @@ func (n *Native) UpdateLabelIfChanged(objName string, text string) {
 	uiLabelSetText(objName, text)
 }
 
-func (n *Native) UpdateLabelAndChangeVisibility(objName string, text string) {
+func (n *Native) UpdateLabelAndChangeVisibility(objName string, text string, visible bool) {
 	if text != "" {
 		uiLabelSetText(objName, text)
-		uiObjShow(objName)
+		if visible {
+			uiObjShow(objName)
+		} else {
+			uiObjHide(objName)
+		}
 	} else {
 		uiObjHide(objName)
 	}

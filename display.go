@@ -198,7 +198,7 @@ func updateStaticContents() {
 		for line := range strings.SplitSeq(string(cpuInfo), "\n") {
 			if strings.HasPrefix(line, "Serial") {
 				serial := strings.SplitN(line, ":", 2)[1]
-				nativeInstance.UpdateLabelAndChangeVisibility("cpu_serial", strings.TrimSpace(serial))
+				nativeInstance.UpdateLabelAndChangeVisibility("cpu_serial", strings.TrimSpace(serial), true)
 				break
 			}
 		}
@@ -208,12 +208,12 @@ func updateStaticContents() {
 	if kernelVersion, err := os.ReadFile("/proc/version"); err == nil {
 		kernelVersion := strings.TrimPrefix(string(kernelVersion), "Linux version ")
 		kernelVersion = strings.SplitN(kernelVersion, " ", 2)[0]
-		nativeInstance.UpdateLabelAndChangeVisibility("kernel_version", kernelVersion)
+		nativeInstance.UpdateLabelAndChangeVisibility("kernel_version", kernelVersion, true)
 	}
 
-	nativeInstance.UpdateLabelAndChangeVisibility("build_branch", version.Branch)
-	nativeInstance.UpdateLabelAndChangeVisibility("build_date", version.BuildDate)
-	nativeInstance.UpdateLabelAndChangeVisibility("golang_version", version.GoVersion)
+	nativeInstance.UpdateLabelAndChangeVisibility("build_branch", version.Branch, true)
+	nativeInstance.UpdateLabelAndChangeVisibility("build_date", version.BuildDate, true)
+	nativeInstance.UpdateLabelAndChangeVisibility("golang_version", version.GoVersion, true)
 
 	// nativeInstance.UpdateLabelAndChangeVisibility("boot_screen_device_id", GetDeviceID())
 }
