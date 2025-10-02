@@ -37,13 +37,19 @@ jobs:
       - name: Build frontend
         run: |
           cd ui
-          npm run build
+          npm run build:device
 
+      - name: Check build output
+        run: |
+          ls -la static/ || echo "No static directory found"
+          ls -la ui/dist/ || echo "No ui/dist directory found"
+      
       - name: Upload frontend artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: static/
+          if-no-files-found: warn
 
   build-binaries:
     needs: build-frontend
@@ -72,6 +78,11 @@ jobs:
         with:
           name: frontend-build
           path: static/
+        continue-on-error: true
+      
+      - name: Check frontend artifacts
+        run: |
+          ls -la static/ || echo "No frontend artifacts found, will build inline"
 
       - name: Install build dependencies
         run: |
