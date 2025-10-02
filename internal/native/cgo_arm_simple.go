@@ -258,3 +258,59 @@ func videoStart() {
 func videoShutdown() {
 	log.Println("Mock: Video shutdown for ARM (no CGO)")
 }
+
+// Native struct methods for display.go compatibility
+func (n *Native) SwitchToScreenIfDifferent(screenName string) {
+	log.Printf("Mock: Switch to screen %s for ARM (no CGO)", screenName)
+}
+
+func (n *Native) UpdateLabelIfChanged(labelName, text string) {
+	log.Printf("Mock: Update label %s to '%s' for ARM (no CGO)", labelName, text)
+}
+
+func (n *Native) UpdateLabelAndChangeVisibility(labelName, text string, visible bool) {
+	log.Printf("Mock: Update label %s to '%s', visible=%t for ARM (no CGO)", labelName, text, visible)
+}
+
+func (n *Native) UIObjHide(objName string) {
+	log.Printf("Mock: Hide UI object %s for ARM (no CGO)", objName)
+}
+
+func (n *Native) UIObjShow(objName string) {
+	log.Printf("Mock: Show UI object %s for ARM (no CGO)", objName)
+}
+
+func (n *Native) UIObjAddState(objName string, state int) {
+	log.Printf("Mock: Add state %d to UI object %s for ARM (no CGO)", state, objName)
+}
+
+func (n *Native) UIObjClearState(objName string, state int) {
+	log.Printf("Mock: Clear state %d from UI object %s for ARM (no CGO)", state, objName)
+}
+
+func (n *Native) UISetVar(varName string, value interface{}) {
+	log.Printf("Mock: Set UI variable %s to %v for ARM (no CGO)", varName, value)
+}
+
+func (n *Native) SwitchToScreenIf(condition bool, screenName string) {
+	if condition {
+		log.Printf("Mock: Switch to screen %s (condition true) for ARM (no CGO)", screenName)
+	}
+}
+
+func (n *Native) UIObjSetImageSrc(objName, imageSrc string) {
+	log.Printf("Mock: Set image source of %s to %s for ARM (no CGO)", objName, imageSrc)
+}
+
+func (n *Native) UIObjFadeOut(objName string, duration int) {
+	log.Printf("Mock: Fade out %s over %dms for ARM (no CGO)", objName, duration)
+}
+
+func (n *Native) UIObjFadeIn(objName string, duration int) {
+	log.Printf("Mock: Fade in %s over %dms for ARM (no CGO)", objName, duration)
+}
+
+func (n *Native) DisplaySetRotation(rotation int) error {
+	log.Printf("Mock: Set display rotation to %d degrees for ARM (no CGO)", rotation)
+	return nil
+}
