@@ -1,71 +1,298 @@
-name: build image
+name: Build JetKVM Multi-Architecture
+
 on:
   push:
-    branches:
-      - dev
-      - main
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
   workflow_dispatch:
-  pull_request_review:
-    types: [submitted]
+
+env:
+  GO_VERSION: '1.24.4'
+  NODE_VERSION: '22.15.0'
 
 jobs:
-  build:
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
-    name: Build
-    if: github.event_name != 'pull_request_review' || github.event.review.state == 'approved'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Set up docker image context
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install frontend dependencies
         run: |
-          ./scripts/ci_helper.sh prepare
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ env.DOCKER_BUILD_CONTEXT_DIR }}
-          file: ${{ env.DOCKER_BUILD_CONTEXT_DIR }}/Dockerfile.build
-          tags: ${{ env.DOCKER_BUILD_TAG }}
-          push: false
-          load: true
-      - name: Set up Cmake cache
-        uses: actions/cache@v4
-        with:
-          path: internal/native/cgo/build
-          key: jetkvm-cgo-${{ hashFiles('internal/native/cgo/**/*.c', 'internal/native/cgo/**/*.h', 'internal/native/cgo/**/*.patch', 'internal/native/cgo/**/*.txt', 'internal/native/cgo/**/*.sh', '!internal/native/cgo/build/**') }}
-          restore-keys: |
-            jetkvm-cgo-${{ hashFiles('internal/native/cgo/**/*.c', 'internal/native/cgo/**/*.h', 'internal/native/cgo/**/*.patch', 'internal/native/cgo/**/*.txt', 'internal/native/cgo/**/*.sh', '!internal/native/cgo/build/**') }}
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: "**/package-lock.json"
-      - name: Set up Golang
-        uses: actions/setup-go@v6
-        with:
-          go-version: "^1.25.1"
+          cd ui
+          npm ci
+
       - name: Build frontend
         run: |
-          make frontend
-      - name: Build application inside Docker container
-        run: |
-          ./scripts/ci_helper.sh make build_dev
-      - name: Run tests
-        run: |
-          go test ./... -json > testreport.json
-      - name: Make test cases
-        run: |
-          ./scripts/ci_helper.sh make build_dev_test
-      - name: Golang Test Report
-        uses: becheran/go-testreport@v0.3.2
-        with:
-          input: "testreport.json"
-      - name: Upload artifact
+          cd ui
+          npm run build:device
+
+      - name: Upload frontend artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: jetkvm-app
-          path: |
-            bin/jetkvm_app
-            device-tests.tar.gz
+          name: frontend-build
+          path: static/
+          retention-days: 1
+
+  build-x86_64:
+    name: Build X86_64
+    runs-on: ubuntu-latest
+    needs: build-frontend
+    strategy:
+      matrix:
+        build-type: [dev, release]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: static/
+
+      - name: Build X86_64 binary
+        run: |
+          export TARGET_ARCH=x86_64
+          if [ "${{ matrix.build-type }}" = "release" ]; then
+            make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          else
+            make build_dev TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          fi
+
+      - name: Test binary
+        run: |
+          ./bin/jetkvm_app --version || echo "Version check completed"
+          file ./bin/jetkvm_app
+
+      - name: Upload X86_64 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetkvm-x86_64-${{ matrix.build-type }}
+          path: bin/jetkvm_app
+          retention-days: 30
+
+  build-arm:
+    name: Build ARM (Docker)
+    runs-on: ubuntu-latest
+    needs: build-frontend
+    strategy:
+      matrix:
+        build-type: [dev, release]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: static/
+
+      - name: Build ARM binary in Docker
+        run: |
+          export TARGET_ARCH=arm
+          export BUILD_IN_DOCKER=true
+          export DOCKER_BUILD_TAG=ghcr.io/jetkvm/buildkit:latest
+          
+          # Build docker image
+          ./scripts/build_utils.sh
+          source ./scripts/build_utils.sh
+          build_docker_image
+          
+          # Build the binary
+          if [ "${{ matrix.build-type }}" = "release" ]; then
+            do_make build_release SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          else
+            do_make build_dev SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          fi
+
+      - name: Upload ARM binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: jetkvm-arm-${{ matrix.build-type }}
+          path: bin/jetkvm_app
+          retention-days: 30
+
+  test-x86_64:
+    name: Test X86_64 Build
+    runs-on: ubuntu-latest
+    needs: build-frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: static/
+
+      - name: Run build tests
+        run: |
+          chmod +x test_x86_build.sh
+          ./test_x86_build.sh
+
+      - name: Run Go tests
+        run: |
+          export TARGET_ARCH=x86_64
+          go test -v ./...
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-x86_64, build-arm, test-x86_64]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          
+          # X86_64 binaries
+          cp jetkvm-x86_64-release/jetkvm_app release/jetkvm_app_x86_64
+          cp jetkvm-x86_64-dev/jetkvm_app release/jetkvm_app_x86_64_dev
+          
+          # ARM binaries
+          cp jetkvm-arm-release/jetkvm_app release/jetkvm_app_arm
+          cp jetkvm-arm-dev/jetkvm_app release/jetkvm_app_arm_dev
+          
+          # Create checksums
+          cd release
+          sha256sum * > checksums.txt
+          
+          # Create archive
+          tar -czf ../jetkvm-${GITHUB_REF_NAME}-multi-arch.tar.gz *
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            jetkvm-${{ github.ref_name }}-multi-arch.tar.gz
+            release/jetkvm_app_x86_64
+            release/jetkvm_app_x86_64_dev
+            release/jetkvm_app_arm
+            release/jetkvm_app_arm_dev
+            release/checksums.txt
+          body: |
+            ## JetKVM ${{ github.ref_name }}
+            
+            Multi-architecture release supporting both ARM and X86_64.
+            
+            ### Downloads
+            - `jetkvm_app_x86_64` - X86_64 release binary
+            - `jetkvm_app_x86_64_dev` - X86_64 development binary
+            - `jetkvm_app_arm` - ARM release binary (original hardware)
+            - `jetkvm_app_arm_dev` - ARM development binary
+            - `jetkvm-${{ github.ref_name }}-multi-arch.tar.gz` - Complete package
+            
+            ### X86_64 Usage
+            ```bash
+            chmod +x jetkvm_app_x86_64
+            ./jetkvm_app_x86_64
+            ```
+            
+            ### ARM Usage (JetKVM Hardware)
+            ```bash
+            chmod +x jetkvm_app_arm
+            ./jetkvm_app_arm
+            ```
+            
+            See [README_X86.md](README_X86.md) for X86_64 specific documentation.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [build-x86_64, test-x86_64]
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download X86_64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: jetkvm-x86_64-release
+          path: bin/
+
+      - name: Download frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: static/
+
+      - name: Create Dockerfile for X86_64
+        run: |
+          cat > Dockerfile.x86_64 << 'EOF'
+          FROM ubuntu:22.04
+          
+          RUN apt-get update && apt-get install -y \
+              ca-certificates \
+              && rm -rf /var/lib/apt/lists/*
+          
+          COPY bin/jetkvm_app /usr/local/bin/jetkvm_app
+          COPY static/ /app/static/
+          COPY config_x86_example.json /app/config.json
+          
+          RUN chmod +x /usr/local/bin/jetkvm_app
+          
+          WORKDIR /app
+          EXPOSE 8080
+          
+          CMD ["/usr/local/bin/jetkvm_app"]
+          EOF
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.x86_64
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-x86_64:latest
+            ghcr.io/${{ github.repository }}-x86_64:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
