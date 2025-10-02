@@ -1,4 +1,4 @@
-//go:build linux && !amd64
+//go:build linux && amd64
 
 package main
 
@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/erikdubbelboer/gspt"
 	"github.com/jetkvm/kvm"
 )
 
@@ -24,8 +23,14 @@ const (
 	errorDumpTemplate  = "jetkvm-%s.log"
 )
 
+// Mock implementation of gspt.SetProcTitle for X86_64
+func setProcTitle(title string) {
+	// Mock implementation - just log the title change
+	fmt.Printf("Mock: Setting process title to: %s\n", title)
+}
+
 func program() {
-	gspt.SetProcTitle(os.Args[0] + " [app]")
+	setProcTitle(os.Args[0] + " [app]")
 	kvm.Main()
 }
 
@@ -104,7 +109,7 @@ func supervise() error {
 		_ = cmd.Process.Signal(sig)
 	}()
 
-	gspt.SetProcTitle(os.Args[0] + " [sup]")
+	setProcTitle(os.Args[0] + " [sup]")
 
 	cmdErr := cmd.Wait()
 	if cmdErr == nil {
