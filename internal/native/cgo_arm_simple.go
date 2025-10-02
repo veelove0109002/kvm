@@ -296,25 +296,26 @@ func (n *Native) UISetVar(varName string, value interface{}) {
 	log.Printf("Mock: Set UI variable %s to %v for ARM (no CGO)", varName, value)
 }
 
-func (n *Native) SwitchToScreenIf(condition bool, screenName string) {
-	if condition {
-		log.Printf("Mock: Switch to screen %s (condition true) for ARM (no CGO)", screenName)
-	}
+func (n *Native) SwitchToScreenIf(screenName string, shouldSwitch []string) {
+	log.Printf("Mock: Switch to screen %s with conditions %v for ARM (no CGO)", screenName, shouldSwitch)
 }
 
-func (n *Native) UIObjSetImageSrc(objName, imageSrc string) {
+func (n *Native) UIObjSetImageSrc(objName, imageSrc string) (bool, error) {
 	log.Printf("Mock: Set image source of %s to %s for ARM (no CGO)", objName, imageSrc)
+	return true, nil
 }
 
-func (n *Native) UIObjFadeOut(objName string, duration int) {
+func (n *Native) UIObjFadeOut(objName string, duration uint32) (bool, error) {
 	log.Printf("Mock: Fade out %s over %dms for ARM (no CGO)", objName, duration)
+	return true, nil
 }
 
-func (n *Native) UIObjFadeIn(objName string, duration int) {
+func (n *Native) UIObjFadeIn(objName string, duration uint32) (bool, error) {
 	log.Printf("Mock: Fade in %s over %dms for ARM (no CGO)", objName, duration)
+	return true, nil
 }
 
-func (n *Native) DisplaySetRotation(rotation int) error {
+func (n *Native) DisplaySetRotation(rotation uint16) (bool, error) {
 	log.Printf("Mock: Set display rotation to %d degrees for ARM (no CGO)", rotation)
-	return nil
+	return true, nil
 }
