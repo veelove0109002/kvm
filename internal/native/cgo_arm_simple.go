@@ -202,3 +202,59 @@ func videoGetState() VideoState {
 		FramePerSecond: 30.0,
 	}
 }
+
+// Additional functions needed by native.go and video.go
+func setUpNativeHandlers() {
+	log.Println("Mock: Setting up native handlers for ARM (no CGO)")
+}
+
+func crash() {
+	panic("Mock crash for ARM (no CGO)")
+}
+
+func videoSetEDID(edid string) error {
+	log.Printf("Mock: Setting video EDID: %s", edid)
+	return nil
+}
+
+func videoGetEDID() (string, error) {
+	// Return a mock EDID for 1920x1080 display
+	return "00ffffffffffff0010ac72404c384145" +
+		"2e120103802f1e78eaee95a3544c9926" +
+		"0f5054a54b00b300d100714fa9408180" +
+		"8140010101011d007251d01e206e2855" +
+		"00d9281100001e8c0ad08a20e02d1010" +
+		"3e9600138e2100001e023a8018713827" +
+		"40582c4500d9281100001e011d80d072" +
+		"1c1620102c2580d9281100009e000000", nil
+}
+
+func videoLogStatus() string {
+	return "Mock video status: ARM no-CGO implementation running"
+}
+
+func videoStop() {
+	log.Println("Mock: Video stop for ARM (no CGO)")
+}
+
+func videoStart() {
+	log.Println("Mock: Video start for ARM (no CGO)")
+	// Simulate video state change
+	go func() {
+		videoState := VideoState{
+			Ready:          true,
+			Error:          "",
+			Width:          1920,
+			Height:         1080,
+			FramePerSecond: 30.0,
+		}
+		select {
+		case videoStateChan <- videoState:
+		default:
+		}
+	}()
+}
+
+func videoShutdown() {
+	log.Println("Mock: Video shutdown for ARM (no CGO)")
+}
