@@ -1,0 +1,42 @@
+{
+  "web": {
+    "port": 8080,
+    "host": "0.0.0.0",
+    "tls": {
+      "enabled": false,
+      "cert_file": "",
+      "key_file": ""
+    }
+  },
+  "auth": {
+    "password": "jetkvm123",
+    "session_timeout": 3600
+  },
+  "video": {
+    "quality_factor": 1.0,
+    "mock_enabled": true,
+    "mock_width": 1920,
+    "mock_height": 1080,
+    "mock_fps": 60
+  },
+  "network": {
+    "interface": "eth0",
+    "dhcp_enabled": true,
+    "hostname": "jetkvm-x86"
+  },
+  "logging": {
+    "level": "info",
+    "file": "/tmp/jetkvm.log",
+    "console": true
+  },
+  "features": {
+    "webrtc_enabled": true,
+    "prometheus_enabled": false,
+    "cloud_enabled": false
+  },
+  "x86_specific": {
+    "note": "This configuration is optimized for X86_64 architecture",
+    "mock_hardware": true,
+    "development_mode": true
+  }
+}
