@@ -236,3 +236,7 @@ func (n *Native) UIObjFadeOut(objName string, duration uint32) (bool, error) {
 func (n *Native) UIObjFadeIn(objName string, duration uint32) (bool, error) {
 	return uiObjFadeIn(objName, duration)
 }
+
+func (n *Native) DisplaySetRotation(rotation uint16) (bool, error) {
+	return uiDispSetRotation(rotation)
+}
