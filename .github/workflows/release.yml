@@ -6,93 +6,58 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
         required: true
-        type: string
+        default: 'v1.0.0'
 
 env:
-  GO_VERSION: '1.24.4'
-  NODE_VERSION: '22.15.0'
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
 
 jobs:
-  prepare-release:
-    name: Prepare Release
+  build-frontend:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          tag_name: ${{ steps.version.outputs.version }}
-          release_name: JetKVM ${{ steps.version.outputs.version }}
-          draft: true
-          prerelease: false
-          body: |
-            ## JetKVM ${{ steps.version.outputs.version }}
-            
-            ### Multi-Architecture Support
-            This release includes binaries for both ARM (original JetKVM hardware) and X86_64 (software-based) architectures.
-            
-            ### Downloads
-            - **X86_64 (Linux)**: `jetkvm-${{ steps.version.outputs.version }}-linux-amd64`
-            - **ARM (JetKVM Hardware)**: `jetkvm-${{ steps.version.outputs.version }}-linux-arm`
-            - **Docker Image**: `ghcr.io/${{ github.repository }}-x86_64:${{ steps.version.outputs.version }}`
-            
-            ### Quick Start
-            
-            #### X86_64 (Development/Testing)
-            ```bash
-            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/jetkvm-${{ steps.version.outputs.version }}-linux-amd64
-            chmod +x jetkvm-${{ steps.version.outputs.version }}-linux-amd64
-            ./jetkvm-${{ steps.version.outputs.version }}-linux-amd64
-            ```
-            
-            #### Docker (X86_64)
-            ```bash
-            docker run -p 8080:8080 ghcr.io/${{ github.repository }}-x86_64:${{ steps.version.outputs.version }}
-            ```
-            
-            ### Documentation
-            - [X86_64 Support Guide](README_X86.md)
-            - [Development Guide](DEVELOPMENT.md)
-            
-            ### Changes
-            <!-- Add changelog here -->
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd ui
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd ui
+          npm run build
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: static/
 
   build-binaries:
-    name: Build Release Binaries
+    needs: build-frontend
     runs-on: ubuntu-latest
-    needs: prepare-release
     strategy:
       matrix:
         include:
           - arch: x86_64
-            goos: linux
-            goarch: amd64
-            cgo: 0
+            go-arch: amd64
+            name: jetkvm-x86_64-linux
           - arch: arm
-            goos: linux
-            goarch: arm
-            goarm: 7
-            cgo: 1
+            go-arch: arm
+            name: jetkvm-arm-linux
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -102,177 +67,172 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ui/package-lock.json
+          name: frontend-build
+          path: static/
 
-      - name: Build frontend
+      - name: Install build dependencies
         run: |
-          cd ui
-          npm ci
-          npm run build:device
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libdrm-dev python3-pip
+          pip3 install kconfiglib
 
-      - name: Build binary - X86_64
-        if: matrix.arch == 'x86_64'
-        run: |
-          export TARGET_ARCH=x86_64
-          make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
-
-      - name: Build binary - ARM (Docker)
+      - name: Install ARM toolchain (for ARM builds)
         if: matrix.arch == 'arm'
         run: |
-          export TARGET_ARCH=arm
-          export BUILD_IN_DOCKER=true
-          source ./scripts/build_utils.sh
-          build_docker_image
-          do_make build_release SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
-      - name: Prepare binary
+      - name: Build binary
         run: |
-          mkdir -p dist
-          cp bin/jetkvm_app dist/jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}
-          
-          # Create checksum
-          cd dist
-          sha256sum jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }} > jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}.sha256
+          export TARGET_ARCH=${{ matrix.arch }}
+          if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          else
+            # For ARM, we might need to skip native build if toolchain is not available
+            make build_release TARGET_ARCH=arm SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1 || make build TARGET_ARCH=arm SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          fi
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename binary
+        run: |
+          mv bin/jetkvm_app bin/${{ matrix.name }}
+          chmod +x bin/${{ matrix.name }}
+
+      - name: Generate checksums
+        run: |
+          cd bin
+          sha256sum ${{ matrix.name }} > ${{ matrix.name }}.sha256
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
-          asset_path: dist/jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}
-          asset_name: jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}
-          asset_content_type: application/octet-stream
+          name: ${{ matrix.name }}
+          path: |
+            bin/${{ matrix.name }}
+            bin/${{ matrix.name }}.sha256
 
-      - name: Upload Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.prepare-release.outputs.upload_url }}
-          asset_path: dist/jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}.sha256
-          asset_name: jetkvm-${{ needs.prepare-release.outputs.version }}-${{ matrix.goos }}-${{ matrix.arch }}.sha256
-          asset_content_type: text/plain
-
-  build-docker:
-    name: Build and Push Docker Image
+  create-release:
+    needs: build-binaries
     runs-on: ubuntu-latest
-    needs: [prepare-release, build-binaries]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          path: artifacts/
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ui/package-lock.json
-
-      - name: Build frontend
+      - name: Prepare release files
         run: |
-          cd ui
-          npm ci
-          npm run build:device
+          mkdir -p release/
+          find artifacts/ -name "jetkvm-*" -type f -exec cp {} release/ \;
+          ls -la release/
 
-      - name: Build X86_64 binary
+      - name: Get tag name
+        id: tag
         run: |
-          export TARGET_ARCH=x86_64
-          make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Create Dockerfile
-        run: |
-          cat > Dockerfile.release << 'EOF'
-          FROM ubuntu:22.04
-          
-          RUN apt-get update && apt-get install -y \
-              ca-certificates \
-              curl \
-              && rm -rf /var/lib/apt/lists/*
-          
-          # Create non-root user
-          RUN useradd -r -s /bin/false jetkvm
-          
-          COPY bin/jetkvm_app /usr/local/bin/jetkvm_app
-          COPY static/ /app/static/
-          COPY config_x86_example.json /app/config.json
-          
-          RUN chmod +x /usr/local/bin/jetkvm_app && \
-              chown -R jetkvm:jetkvm /app
-          
-          WORKDIR /app
-          USER jetkvm
-          
-          EXPOSE 8080
-          
-          HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-            CMD curl -f http://localhost:8080/health || exit 1
-          
-          CMD ["/usr/local/bin/jetkvm_app"]
-          EOF
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          context: .
-          file: Dockerfile.release
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}-x86_64:latest
-            ghcr.io/${{ github.repository }}-x86_64:${{ needs.prepare-release.outputs.version }}
-          labels: |
-            org.opencontainers.image.title=JetKVM X86_64
-            org.opencontainers.image.description=JetKVM software-based KVM solution for X86_64
-            org.opencontainers.image.version=${{ needs.prepare-release.outputs.version }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tag_name: ${{ steps.tag.outputs.tag }}
+          release_name: JetKVM ${{ steps.tag.outputs.tag }}
+          body: |
+            ## JetKVM Release ${{ steps.tag.outputs.tag }}
+            
+            ### 🚀 Multi-Architecture Support
+            This release includes binaries for both ARM and X86_64 architectures:
+            
+            - **jetkvm-arm-linux**: For ARM devices (Rockchip RV1106, original hardware)
+            - **jetkvm-x86_64-linux**: For X86_64 devices (software simulation)
+            
+            ### 📦 Downloads
+            - Download the appropriate binary for your architecture
+            - Verify checksums using the provided `.sha256` files
+            
+            ### 🔧 Usage
+            ```bash
+            # Make executable
+            chmod +x jetkvm-*-linux
+            
+            # Run
+            ./jetkvm-*-linux
+            ```
+            
+            ### 🆕 What's New
+            - Multi-architecture support (ARM + X86_64)
+            - Software KVM simulation for X86_64
+            - Improved build system and CI/CD
+            - Complete mock implementations for development
+            
+            ### 📋 System Requirements
+            **ARM Linux (Hardware KVM):**
+            - Rockchip RV1106 or compatible ARM device
+            - Linux kernel with KVM support
+            - Hardware video capture capabilities
+            
+            **X86_64 Linux (Software KVM):**
+            - Any X86_64 Linux system
+            - Suitable for development, testing, and demonstration
+            - Mock implementations for all hardware functions
+            
+            ### 🐛 Known Issues
+            - X86_64 version provides software simulation only
+            - Some hardware-specific features are mocked on X86_64
+            
+            ### 📚 Documentation
+            - [X86_64 Setup Guide](README_X86.md)
+            - [Build Instructions](BUILD_FIXES_X86.md)
+            - [Implementation Changelog](CHANGELOG_X86.md)
+          draft: false
+          prerelease: false
 
-  finalize-release:
-    name: Finalize Release
-    runs-on: ubuntu-latest
-    needs: [prepare-release, build-binaries, build-docker]
-    steps:
-      - name: Publish Release
-        uses: actions/github-script@v7
+      - name: Upload ARM Binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { owner, repo } = context.repo;
-            const tag = "${{ needs.prepare-release.outputs.version }}";
-            
-            // Get the release
-            const releases = await github.rest.repos.listReleases({
-              owner,
-              repo,
-            });
-            
-            const release = releases.data.find(r => r.tag_name === tag);
-            
-            if (release) {
-              // Update the release to published
-              await github.rest.repos.updateRelease({
-                owner,
-                repo,
-                release_id: release.id,
-                draft: false,
-              });
-              
-              console.log(`Release ${tag} published successfully!`);
-            }
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/jetkvm-arm-linux
+          asset_name: jetkvm-arm-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload ARM Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/jetkvm-arm-linux.sha256
+          asset_name: jetkvm-arm-linux.sha256
+          asset_content_type: text/plain
+
+      - name: Upload X86_64 Binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/jetkvm-x86_64-linux
+          asset_name: jetkvm-x86_64-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload X86_64 Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/jetkvm-x86_64-linux.sha256
+          asset_name: jetkvm-x86_64-linux.sha256
+          asset_content_type: text/plain
