@@ -49,4 +49,58 @@ target_compile_definitions(jknative PRIVATE
     NO_ROCKCHIP=1
 )
 
+# Install library
 install(TARGETS jknative DESTINATION lib)
+
+# Install headers - create minimal header set for X86_64
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/ctrl.h
+    DESTINATION include
+)
+
+# Create a minimal ui_index.h for installation
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/ui_index.h
+"#ifndef UI_INDEX_H
+#define UI_INDEX_H
+
+// Mock UI index header for X86_64
+typedef struct {
+    const char *name;
+    void **obj;
+} ui_obj_map;
+
+extern ui_obj_map ui_objects[];
+extern const int ui_objects_size;
+
+typedef struct {
+    const char *name;
+    void *(*getter)();
+} ui_style_map;
+
+extern ui_style_map ui_styles[];
+extern const int ui_styles_size;
+
+typedef struct {
+    const char *name;
+    const void *img;
+} ui_img_map;
+
+extern ui_img_map ui_images[];
+extern const int ui_images_size;
+
+typedef struct {
+    const char *name;
+    const char *(*getter)();
+    void (*setter)(const char *value);
+} ui_var_map;
+
+extern ui_var_map ui_vars[];
+extern const int ui_vars_size;
+
+#endif // UI_INDEX_H
+")
+
+install(FILES 
+    ${CMAKE_CURRENT_BINARY_DIR}/ui_index.h
+    DESTINATION include
+)
