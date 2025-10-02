@@ -52,9 +52,13 @@ build_native:
 		echo "libjknative.a already exists, skipping native build..."; \
 	else \
 		echo "Building native..."; \
+		if [ "$(TARGET_ARCH)" = "x86_64" ]; then \
+			TARGET_ARCH=x86_64 ./scripts/build_cgo.sh; \
+		else \
 			CC="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-gcc" \
 			LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
 			./scripts/build_cgo.sh; \
+		fi \
 	fi
 
 build_dev: build_native
