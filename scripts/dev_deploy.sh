@@ -107,8 +107,20 @@ if [ -z "$REMOTE_HOST" ]; then
 fi
 
 # check if the current CPU architecture is x86_64
-if [ "$(uname -m)" != "x86_64" ]; then
-    msg_warn "Warning: This script is only supported on x86_64 architecture"
+CURRENT_ARCH=$(uname -m)
+if [ "$CURRENT_ARCH" = "x86_64" ]; then
+    msg_info "Detected X86_64 architecture"
+    # Set target architecture for X86 builds
+    export TARGET_ARCH=x86_64
+    BUILD_IN_DOCKER=false
+elif [ "$CURRENT_ARCH" = "aarch64" ] || [ "$CURRENT_ARCH" = "arm64" ]; then
+    msg_info "Detected ARM64 architecture"
+    export TARGET_ARCH=arm
+    BUILD_IN_DOCKER=true
+else
+    msg_warn "Warning: Unsupported architecture: $CURRENT_ARCH"
+    msg_warn "Defaulting to ARM build in Docker"
+    export TARGET_ARCH=arm
     BUILD_IN_DOCKER=true
 fi
 

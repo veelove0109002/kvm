@@ -21,16 +21,24 @@ GO_LDFLAGS := \
   -X $(PROMETHEUS_TAG).Revision=$(REVISION) \
   -X $(KVM_PKG_NAME).builtTimestamp=$(BUILDTS)
 
-GO_ARGS := GOOS=linux GOARCH=arm GOARM=7 ARCHFLAGS="-arch arm"
-# if BUILDKIT_PATH exists, use buildkit to build
-ifneq ($(wildcard $(BUILDKIT_PATH)),)
-	GO_ARGS := $(GO_ARGS) \
-		CGO_CFLAGS="-I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/include -I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/include" \
-		CGO_LDFLAGS="-L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/lib -L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/lib -lrockit -lrockchip_mpp -lrga -lpthread -lm" \
-		CC="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-gcc" \
-		LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
-		CGO_ENABLED=1 
-	# GO_RELEASE_BUILD_ARGS := $(GO_RELEASE_BUILD_ARGS) -x -work
+# Support both ARM and X86 architectures
+TARGET_ARCH ?= arm
+ifeq ($(TARGET_ARCH),x86_64)
+	GO_ARGS := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
+else ifeq ($(TARGET_ARCH),arm)
+	GO_ARGS := GOOS=linux GOARCH=arm GOARM=7 ARCHFLAGS="-arch arm"
+	# if BUILDKIT_PATH exists, use buildkit to build
+	ifneq ($(wildcard $(BUILDKIT_PATH)),)
+		GO_ARGS := $(GO_ARGS) \
+			CGO_CFLAGS="-I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/include -I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/include" \
+			CGO_LDFLAGS="-L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/lib -L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/lib -lrockit -lrockchip_mpp -lrga -lpthread -lm" \
+			CC="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-gcc" \
+			LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
+			CGO_ENABLED=1 
+		# GO_RELEASE_BUILD_ARGS := $(GO_RELEASE_BUILD_ARGS) -x -work
+	endif
+else
+	$(error Unsupported architecture: $(TARGET_ARCH). Use 'arm' or 'x86_64')
 endif
 
 GO_CMD := $(GO_ARGS) go
