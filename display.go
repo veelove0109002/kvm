@@ -36,7 +36,7 @@ func switchToMainScreen() {
 
 func updateDisplay() {
 	nativeInstance.UpdateLabelIfChanged("home_info_ipv4_addr", networkState.IPv4String())
-	nativeInstance.UpdateLabelAndChangeVisibility("home_info_ipv6_addr", networkState.IPv6String())
+	nativeInstance.UpdateLabelAndChangeVisibility("home_info_ipv6_addr", networkState.IPv6String(), true)
 
 	_, _ = nativeInstance.UIObjHide("menu_btn_network")
 	_, _ = nativeInstance.UIObjHide("menu_btn_access")

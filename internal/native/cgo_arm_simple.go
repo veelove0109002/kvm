@@ -272,20 +272,24 @@ func (n *Native) UpdateLabelAndChangeVisibility(labelName, text string, visible 
 	log.Printf("Mock: Update label %s to '%s', visible=%t for ARM (no CGO)", labelName, text, visible)
 }
 
-func (n *Native) UIObjHide(objName string) {
+func (n *Native) UIObjHide(objName string) (bool, error) {
 	log.Printf("Mock: Hide UI object %s for ARM (no CGO)", objName)
+	return true, nil
 }
 
-func (n *Native) UIObjShow(objName string) {
+func (n *Native) UIObjShow(objName string) (bool, error) {
 	log.Printf("Mock: Show UI object %s for ARM (no CGO)", objName)
+	return true, nil
 }
 
-func (n *Native) UIObjAddState(objName string, state int) {
-	log.Printf("Mock: Add state %d to UI object %s for ARM (no CGO)", state, objName)
+func (n *Native) UIObjAddState(objName string, state string) (bool, error) {
+	log.Printf("Mock: Add state %s to UI object %s for ARM (no CGO)", state, objName)
+	return true, nil
 }
 
-func (n *Native) UIObjClearState(objName string, state int) {
-	log.Printf("Mock: Clear state %d from UI object %s for ARM (no CGO)", state, objName)
+func (n *Native) UIObjClearState(objName string, state string) (bool, error) {
+	log.Printf("Mock: Clear state %s from UI object %s for ARM (no CGO)", state, objName)
+	return true, nil
 }
 
 func (n *Native) UISetVar(varName string, value interface{}) {
