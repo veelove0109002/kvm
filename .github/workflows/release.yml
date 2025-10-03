@@ -82,7 +82,16 @@ jobs:
       
       - name: Check frontend artifacts
         run: |
-          ls -la static/ || echo "No frontend artifacts found, will build inline"
+          echo "Checking frontend artifacts..."
+          ls -la static/ || echo "No static directory found"
+          if [ -f "static/index.html" ]; then
+            echo "✅ Frontend artifacts found - index.html exists"
+            echo "Frontend files:"
+            find static/ -type f | head -10
+          else
+            echo "❌ Frontend artifacts missing - index.html not found"
+            echo "This will cause the web interface to not work properly"
+          fi
 
       - name: Install build dependencies
         run: |
@@ -110,11 +119,25 @@ jobs:
       - name: Build binary
         run: |
           export TARGET_ARCH=${{ matrix.arch }}
+          echo "Building for architecture: ${{ matrix.arch }}"
+          
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
+            echo "🔧 Building X86_64 binary..."
+            
+            # Check if frontend artifacts are available
+            if [ -f "static/index.html" ]; then
+              echo "✅ Frontend artifacts found, building with UI support"
+              echo "Static files that will be embedded:"
+              find static/ -type f | wc -l | xargs echo "Total files:"
+            else
+              echo "⚠️  No frontend artifacts found, building without UI"
+              echo "Web interface will not work properly!"
+            fi
+            
             make build_release TARGET_ARCH=x86_64 SKIP_NATIVE_IF_EXISTS=1 SKIP_UI_BUILD=1
           else
             # For ARM, use simplified build without native dependencies
-            echo "Building ARM binary with simplified approach..."
+            echo "🔧 Building ARM binary with simplified approach..."
             ./scripts/build_arm_simple.sh
           fi
 
