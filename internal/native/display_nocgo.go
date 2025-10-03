@@ -191,6 +191,27 @@ func videoGetEDID() (string, error) {
 	return "mock-edid-data", nil
 }
 
+// videoLogStatus returns video status log (mock for no-CGO)
+func videoLogStatus() string {
+	log.Println("Mock: Getting video log status (no-CGO)")
+	return "Mock video status: Running on X86_64 (no-CGO)"
+}
+
+// videoStop stops video capture (mock for no-CGO)
+func videoStop() {
+	log.Println("Mock: Video stop (no-CGO)")
+}
+
+// videoStart starts video capture (mock for no-CGO)
+func videoStart() {
+	log.Println("Mock: Video start (no-CGO)")
+}
+
+// videoShutdown shuts down video system (mock for no-CGO)
+func videoShutdown() {
+	log.Println("Mock: Video shutdown (no-CGO)")
+}
+
 // HDMI Display methods for X86_64 no-CGO builds
 
 // EnableHDMIDisplay enables HDMI output (mock for no-CGO)
