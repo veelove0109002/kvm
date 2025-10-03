@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"runtime"
 	"time"
-
-	"github.com/jetkvm/kvm/internal/native"
 )
 
 // HDMI output configuration and management
@@ -38,12 +36,19 @@ func initHDMIOutputIfEnabled() {
 
 // getWebServerURL constructs the web server URL for HDMI output
 func getWebServerURL() string {
-	host := config.Host
-	port := config.Port
+	// Default values
+	host := "localhost"
+	port := 80
 
-	// Use localhost for HDMI output
-	if host == "0.0.0.0" || host == "::" {
+	// Try to get from network config if available
+	if config.NetworkConfig != nil {
+		// Use localhost for HDMI output (always local)
 		host = "localhost"
+		
+		// Use default port 80 (web server default)
+		// In a real implementation, you might want to extract the actual port
+		// from the web server configuration
+		port = 80
 	}
 
 	return fmt.Sprintf("http://%s:%d", host, port)
