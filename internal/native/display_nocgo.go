@@ -142,3 +142,79 @@ func (n *Native) SwitchToScreenIf(screenName string, shouldSwitch []string) {
 func (n *Native) SwitchToScreenIfDifferent(screenName string) {
 	log.Printf("Mock: SwitchToScreenIfDifferent(%s)", screenName)
 }
+
+// Additional functions required by native.go
+
+// setUpNativeHandlers sets up native handlers (mock for no-CGO)
+func setUpNativeHandlers() {
+	log.Println("Mock: Setting up native handlers (no-CGO)")
+}
+
+// videoInit initializes video system (mock for no-CGO)
+func videoInit() error {
+	log.Println("Mock: Video init (no-CGO)")
+	return nil
+}
+
+// crash function for testing (mock for no-CGO)
+func crash() {
+	log.Println("Mock: Crash function called (no-CGO)")
+	panic("Mock crash for testing")
+}
+
+// uiGetLVGLVersion returns LVGL version (mock for no-CGO)
+func uiGetLVGLVersion() string {
+	return "mock-lvgl-8.3.0-nocgo"
+}
+
+// videoSetStreamQualityFactor sets video quality factor (mock for no-CGO)
+func videoSetStreamQualityFactor(factor float64) error {
+	log.Printf("Mock: Setting video quality factor to %f (no-CGO)", factor)
+	return nil
+}
+
+// videoGetStreamQualityFactor gets video quality factor (mock for no-CGO)
+func videoGetStreamQualityFactor() (float64, error) {
+	log.Println("Mock: Getting video quality factor (no-CGO)")
+	return 1.0, nil
+}
+
+// videoSetEDID sets EDID (mock for no-CGO)
+func videoSetEDID(edid string) error {
+	log.Printf("Mock: Setting EDID: %s (no-CGO)", edid)
+	return nil
+}
+
+// videoGetEDID gets EDID (mock for no-CGO)
+func videoGetEDID() (string, error) {
+	log.Println("Mock: Getting EDID (no-CGO)")
+	return "mock-edid-data", nil
+}
+
+// HDMI Display methods for X86_64 no-CGO builds
+
+// EnableHDMIDisplay enables HDMI output (mock for no-CGO)
+func (n *Native) EnableHDMIDisplay(webServerURL string) error {
+	log.Printf("Mock: EnableHDMIDisplay(%s) (no-CGO)", webServerURL)
+	return nil
+}
+
+// DisableHDMIDisplay disables HDMI output (mock for no-CGO)
+func (n *Native) DisableHDMIDisplay() error {
+	log.Println("Mock: DisableHDMIDisplay() (no-CGO)")
+	return nil
+}
+
+// GetHDMIDisplayStatus returns HDMI display status (mock for no-CGO)
+func (n *Native) GetHDMIDisplayStatus() map[string]interface{} {
+	log.Println("Mock: GetHDMIDisplayStatus() (no-CGO)")
+	return map[string]interface{}{
+		"enabled":    false,
+		"autoStart":  false,
+		"webURL":     "",
+		"xProcess":   nil,
+		"browser":    nil,
+		"mock":       true,
+		"platform":   "no-cgo",
+	}
+}
