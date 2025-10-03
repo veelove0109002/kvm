@@ -104,6 +104,8 @@ type Config struct {
 	UsbDevices           *usbgadget.Devices     `json:"usb_devices"`
 	NetworkConfig        *network.NetworkConfig `json:"network_config"`
 	DefaultLogLevel      string                 `json:"default_log_level"`
+	HDMIOutputEnabled    bool                   `json:"hdmi_output_enabled"`
+	HDMIOutputAutoStart  bool                   `json:"hdmi_output_auto_start"`
 }
 
 func (c *Config) GetDisplayRotation() uint16 {
@@ -147,6 +149,8 @@ var defaultConfig = &Config{
 		Timezone:               "UTC",
 	},
 	TLSMode: "",
+	HDMIOutputEnabled:   false,
+	HDMIOutputAutoStart: false,
 	UsbConfig: &usbgadget.Config{
 		VendorId:     "0x1d6b", //The Linux Foundation
 		ProductId:    "0x0104", //Multifunction Composite Gadget

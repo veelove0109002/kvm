@@ -109,6 +109,9 @@ func Main() {
 	//go RunFuseServer()
 	go RunWebServer()
 
+	// Initialize HDMI output for X86_64 if enabled
+	go initHDMIOutputIfEnabled()
+
 	go RunWebSecureServer()
 	// Web secure server is started only if TLS mode is enabled
 	if config.TLSMode != "" {

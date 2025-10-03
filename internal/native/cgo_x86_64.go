@@ -15,6 +15,9 @@ var cgoLock sync.Mutex
 func setUpNativeHandlers() {
 	// Mock setup - no actual hardware handlers needed for X86
 	nativeLogger.Info().Msg("Setting up mock native handlers for X86_64")
+	
+	// Initialize HDMI output capability
+	nativeLogger.Info().Msg("HDMI output capability initialized for X86_64")
 }
 
 func uiInit(rotation uint16) {

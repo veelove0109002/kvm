@@ -184,6 +184,15 @@ func setupRouter() *gin.Engine {
 		protected.PUT("/auth/password-local", handleUpdatePassword)
 		protected.DELETE("/auth/local-password", handleDeletePassword)
 		protected.POST("/storage/upload", handleUploadHttp)
+
+		// HDMI Output API endpoints
+		protected.GET("/hdmi/status", handleHDMIOutputStatus)
+		protected.POST("/hdmi/enable", handleHDMIOutputEnable)
+		protected.POST("/hdmi/disable", handleHDMIOutputDisable)
+		protected.POST("/hdmi/toggle", handleHDMIOutputToggle)
+		protected.GET("/hdmi/config", handleHDMIOutputConfig)
+		protected.POST("/hdmi/config", handleHDMIOutputConfig)
+		protected.PUT("/hdmi/config", handleHDMIOutputConfig)
 	}
 
 	// Catch-all route for SPA
