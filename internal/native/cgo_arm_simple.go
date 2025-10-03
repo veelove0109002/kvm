@@ -260,6 +260,36 @@ func videoShutdown() {
 }
 
 // Native struct methods for display.go compatibility
+
+// UI initialization and tick methods
+func (n *Native) setUIVars() {
+	appVersionStr := "unknown"
+	systemVersionStr := "unknown"
+	
+	if n.appVersion != nil {
+		appVersionStr = n.appVersion.String()
+	}
+	if n.systemVersion != nil {
+		systemVersionStr = n.systemVersion.String()
+	}
+	
+	log.Printf("Mock ARM: Setting UI vars - app_version: %s, system_version: %s", 
+		appVersionStr, systemVersionStr)
+}
+
+func (n *Native) initUI() {
+	log.Printf("Mock ARM: Initializing UI with rotation: %d", n.displayRotation)
+	n.setUIVars()
+}
+
+func (n *Native) tickUI() {
+	log.Println("Mock ARM: UI tick loop started (no-CGO)")
+	for {
+		time.Sleep(16 * time.Millisecond) // ~60 FPS
+		// Mock UI tick - no actual UI operations
+	}
+}
+
 func (n *Native) SwitchToScreenIfDifferent(screenName string) {
 	log.Printf("Mock: Switch to screen %s for ARM (no CGO)", screenName)
 }
