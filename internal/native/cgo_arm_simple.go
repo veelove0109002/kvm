@@ -349,3 +349,76 @@ func (n *Native) DisplaySetRotation(rotation uint16) (bool, error) {
 	log.Printf("Mock: Set display rotation to %d degrees for ARM (no CGO)", rotation)
 	return true, nil
 }
+
+// RPC methods for HDMI output control on ARM (mock implementations)
+
+// RpcEnableHDMIOutput enables HDMI output (mock for ARM no-CGO)
+func (n *Native) RpcEnableHDMIOutput(webServerURL string) error {
+	log.Printf("Mock ARM: RPC enabling HDMI output with URL: %s", webServerURL)
+	return nil
+}
+
+// RpcDisableHDMIOutput disables HDMI output (mock for ARM no-CGO)
+func (n *Native) RpcDisableHDMIOutput() error {
+	log.Printf("Mock ARM: RPC disabling HDMI output")
+	return nil
+}
+
+// RpcGetHDMIOutputStatus returns HDMI output status (mock for ARM no-CGO)
+func (n *Native) RpcGetHDMIOutputStatus() map[string]interface{} {
+	log.Printf("Mock ARM: RPC getting HDMI output status")
+	return map[string]interface{}{
+		"enabled":    false,
+		"available":  false,
+		"mock":       true,
+		"platform":   "arm-nocgo",
+		"webURL":     "",
+		"error":      "HDMI output not available in ARM no-CGO build",
+	}
+}
+
+// RpcToggleHDMIOutput toggles HDMI output on/off (mock for ARM no-CGO)
+func (n *Native) RpcToggleHDMIOutput(webServerURL string) error {
+	log.Printf("Mock ARM: RPC toggling HDMI output with URL: %s", webServerURL)
+	status := n.RpcGetHDMIOutputStatus()
+	enabled, ok := status["enabled"].(bool)
+	if !ok {
+		return fmt.Errorf("failed to get HDMI output status")
+	}
+	
+	if enabled {
+		log.Printf("Mock ARM: Toggling HDMI output OFF")
+		return n.RpcDisableHDMIOutput()
+	} else {
+		log.Printf("Mock ARM: Toggling HDMI output ON")
+		return n.RpcEnableHDMIOutput(webServerURL)
+	}
+}
+
+// HDMI Display methods for ARM no-CGO builds
+
+// EnableHDMIDisplay enables HDMI output (mock for ARM no-CGO)
+func (n *Native) EnableHDMIDisplay(webServerURL string) error {
+	log.Printf("Mock ARM: EnableHDMIDisplay(%s) (no-CGO)", webServerURL)
+	return nil
+}
+
+// DisableHDMIDisplay disables HDMI output (mock for ARM no-CGO)
+func (n *Native) DisableHDMIDisplay() error {
+	log.Println("Mock ARM: DisableHDMIDisplay() (no-CGO)")
+	return nil
+}
+
+// GetHDMIDisplayStatus returns HDMI display status (mock for ARM no-CGO)
+func (n *Native) GetHDMIDisplayStatus() map[string]interface{} {
+	log.Println("Mock ARM: GetHDMIDisplayStatus() (no-CGO)")
+	return map[string]interface{}{
+		"enabled":    false,
+		"autoStart":  false,
+		"webURL":     "",
+		"xProcess":   nil,
+		"browser":    nil,
+		"mock":       true,
+		"platform":   "arm-nocgo",
+	}
+}
