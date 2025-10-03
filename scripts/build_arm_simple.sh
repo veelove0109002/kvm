@@ -19,7 +19,7 @@ mkdir -p bin
 
 echo "📦 Building Go binary..."
 go build \
-    -tags netgo,timetzdata,nomsgpack \
+    -tags netgo,timetzdata,nomsgpack,ci \
     -trimpath \
     -ldflags="-s -w -X github.com/prometheus/common/version.Branch=master -X github.com/prometheus/common/version.BuildDate=$(date -u +%FT%T%z) -X github.com/prometheus/common/version.Revision=$(git rev-parse HEAD || echo 'unknown') -X github.com/jetkvm/kvm.builtTimestamp=$(date -u +%s) -X github.com/jetkvm/kvm.builtAppVersion=0.4.8" \
     -o bin/jetkvm_app \
