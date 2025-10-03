@@ -8,8 +8,18 @@ import (
 )
 
 func (n *Native) setUIVars() {
+	appVersionStr := "unknown"
+	systemVersionStr := "unknown"
+	
+	if n.appVersion != nil {
+		appVersionStr = n.appVersion.String()
+	}
+	if n.systemVersion != nil {
+		systemVersionStr = n.systemVersion.String()
+	}
+	
 	log.Printf("Mock: Setting UI vars - app_version: %s, system_version: %s", 
-		n.appVersion.String(), n.systemVersion.String())
+		appVersionStr, systemVersionStr)
 }
 
 func (n *Native) initUI() {
